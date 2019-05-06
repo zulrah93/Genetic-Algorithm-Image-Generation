@@ -4,7 +4,8 @@
 #include <functional>
 #include <random>
 #include <vector>
-#include <algorithm> 
+#include <algorithm>
+#include <thread> 
 
 using namespace std;
 
@@ -33,8 +34,9 @@ class image
         {
             this->window = window;
             this->img = SDL_LoadBMP(path.c_str());
-            this->windowSurface = SDL_GetWindowSurface(window);
-            if (this->img == nullptr || this->window == nullptr || this->windowSurface == nullptr) {
+            if (window)
+                this->windowSurface = SDL_GetWindowSurface(window);
+            if (this->img == nullptr) {
                 errorCallback(); // Call the error callback if one of the handles is null
             }
         }
@@ -89,25 +91,34 @@ class image
             return img->h;
         }
 
+        bool is_disposed() {
+            if (img == nullptr || window == nullptr || windowSurface == nullptr)
+                return true;
+            return (img && img->refcount <= 0); 
+        }
+
 };
 
 
 class individual
 {
      private:
+        SDL_Window *window;
         uint8_t* chromosone;
         size_t length; // Length of the chromosone
         const uint8_t* target;
-        image img;
+        image *img;
         int fitness;
      public:
-        individual(const uint8_t *target, size_t length)
+        individual(const uint8_t *target, size_t length, SDL_Window *window, int w, int h)
         {
             srand(time(NULL));
             this->fitness = 0;
             this->target = target;
             this->length = length;
             this->chromosone = new uint8_t[length];
+            this->window = window;
+            this->img = new image(window, w, h);
             for(size_t i = 0; i < length; i++) // Create random genes
             {
                 this->chromosone[i] = rand() % 255;
@@ -118,7 +129,7 @@ class individual
 
         individual mate(individual parent)
         {
-            individual child(target, length);
+            individual child(target, length, window, img->get_width(), img->get_height());
             srand(time(nullptr));
             double p = rand() / static_cast<double>(RAND_MAX);
             child.fitness = 0;
@@ -138,10 +149,15 @@ class individual
             return child;
         }
 
-        void render(SDL_Window *window, int w, int h) {
-            img = image(window, w, h);
-            img.set_data(chromosone);
-            img.render();
+        void render() {
+            if (img && !img->is_disposed() && chromosone) {
+                img->set_data(chromosone);
+                img->render();
+            }
+        }
+
+        const uint8_t* data() {
+            return chromosone;
         }
 
         int get_fitness() {
@@ -152,9 +168,22 @@ class individual
             return this->get_fitness() < ind.get_fitness();
         }
 
-        void dispose() {
-            img.dispose();
-            delete chromosone;
+        void dispose(bool console_mode) {
+            if (console_mode) {
+                img->dispose();
+                delete chromosone;
+                delete img;
+                img = nullptr;
+                chromosone = nullptr;
+            }
+            else {
+                if (img->is_disposed()) // Prevent double-free
+                    return;
+                delete chromosone;
+                delete img;
+                img = nullptr;
+                chromosone = nullptr;
+            }
         }
 
 };
