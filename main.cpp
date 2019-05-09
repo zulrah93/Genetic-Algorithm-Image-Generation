@@ -1,11 +1,13 @@
-#include <signal.h>
-#include "helper.h"
-#include "gif.h"
+#include "global.h"
 
+
+vector<individual> population;
+bool quit = false;
+int min_fitness = INT32_MAX;
+int max_fitness = 0;
+int initial_fitness = -1;
 
 #define POPULATION_SIZE 5000
-
-
 
 bool console_mode = false;
 

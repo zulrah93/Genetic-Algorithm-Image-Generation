@@ -6,7 +6,10 @@
       "command": "/usr/bin/g++",
       "args": [
         "-g",
-        "${file}",
+        "${fileDirname}/main.cpp",
+        "${fileDirname}/image.cpp",
+        "${fileDirname}/bitmap.cpp",
+        "${fileDirname}/http.cpp",
         "-o",
         "${fileDirname}/${fileBasenameNoExtension}",
         "-lSDL2",
