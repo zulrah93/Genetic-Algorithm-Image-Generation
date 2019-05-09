@@ -25,6 +25,10 @@ using std::function;
 
 bool quit = false;
 
+int min_fitness = INT32_MAX;
+int max_fitness = 0;
+int initial_fitness = -1;
+
 class image
 {
     private:
@@ -231,7 +235,7 @@ void run_server(int port) {
         exit(1);
     }
 
-    auto ip = get_ip_address("0.0.0.0", port);
+    auto ip = get_ip_address("plexserver", port);
 
 
     if(bind(fd, (sockaddr*)&ip, sizeof(ip)) == -1) {
@@ -251,7 +255,14 @@ void run_server(int port) {
 
         auto& most_fittest = population[0];
 
-        auto message = "<html><body>Current Fitness: "  + to_string(most_fittest.get_fitness()) + "</body></html>";
+        auto message =  // TODO HTML Builder class
+        "<html><body>Initial Fitness: " 
+        + to_string(initial_fitness) 
+        + "<br>Minimum Fitness: " 
+        + to_string(min_fitness) + 
+        "<br>Maximum Fitness:" + to_string(max_fitness) 
+        + "<br>Current Fitness: "  + to_string(most_fittest.get_fitness()) + 
+        "</body></html>";
 
         string http_response =  //Create the HTTP response
         string("HTTP/1.1 200 OK\r\n") +

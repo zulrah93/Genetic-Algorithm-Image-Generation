@@ -3,7 +3,7 @@
 #include "gif.h"
 
 
-#define POPULATION_SIZE 25000
+#define POPULATION_SIZE 5000
 
 
 
@@ -125,6 +125,13 @@ int main(int argc, const char * argv[]) {
         generation++;
 
         auto current_fitness = most_fittest.get_fitness();
+
+        if (initial_fitness == -1) 
+            initial_fitness = current_fitness;
+        if (current_fitness < min_fitness)
+            min_fitness = current_fitness;
+        if (current_fitness > max_fitness)
+            max_fitness = current_fitness;
 
         auto elapsed = static_cast<double>(clock()-prev)/CLOCKS_PER_SEC;
 
