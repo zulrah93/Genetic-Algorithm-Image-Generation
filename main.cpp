@@ -1,12 +1,12 @@
-#include <iostream>
 #include <signal.h>
 #include "helper.h"
 #include "gif.h"
 
-#define POPULATION_SIZE 50000
 
-vector<individual> population;
-bool quit = false;
+#define POPULATION_SIZE 25000
+
+
+
 bool console_mode = false;
 
 GifWriter writer;
@@ -21,7 +21,8 @@ int main(int argc, const char * argv[]) {
 
     console_mode = (argc > 1 && strcmp(argv[1], "-console") == 0);
 
-    cout << "Using console mode..." << endl;
+    if (console_mode)
+        cout << "Using console mode..." << endl;
 
     if(!console_mode && SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
@@ -39,14 +40,10 @@ int main(int argc, const char * argv[]) {
 
     SDL_Event event;
 
-    cout << "Creating Target Image!" << endl;
-
     image target(window, "apple.bmp", []() {
          std::cout << "Failed to load target image: " << SDL_GetError() << std::endl;
          SDL_Quit();
     });
-
-    cout << "Done" << endl;
 
     GifBegin(&writer, "output.gif", target.get_width(), target.get_height(), 100);
     signal(SIGINT, sighandler);
@@ -63,10 +60,13 @@ int main(int argc, const char * argv[]) {
     bool found = false;
     uint64_t generation = 0;
 
-    thread t([]() {
+    // Thread that does the brunt of the work for the genetic algorithm
+    thread populationThread([]() {
+            srand(time(nullptr));
+
             while(!quit) {
 
-                srand(time(nullptr));
+
                 vector<individual> new_gen; 
                 int s = (10*POPULATION_SIZE)/100; // 10 percent of the fittest go on to the next gen
                 for(int i = 0;i<s;i++) {
@@ -76,8 +76,12 @@ int main(int argc, const char * argv[]) {
                 
                 s = (90*POPULATION_SIZE)/100; 
                 for(int i = 0;i<s;i++) {
-                    size_t index = rand() % s;
-                    size_t index2 = rand() % s;
+                    size_t index = rand() % (POPULATION_SIZE/2);
+                    size_t index2 = rand() % (POPULATION_SIZE/2);
+                    if (index == index2) {
+                        index++;
+                        index %= POPULATION_SIZE;
+                    }
                     auto& parent1 = population[index];
                     auto& parent2 = population[index2];
                     new_gen.push_back(parent1.mate(parent2)); // Mate with two random individuals for this case it is possible for the same individual to mate with itself
@@ -95,6 +99,10 @@ int main(int argc, const char * argv[]) {
             }
     });
 
+    
+    thread serverThread(run_server, 8080);
+    
+
     clock_t prev = clock();
     
     int previous_fitness = 0;
@@ -109,7 +117,7 @@ int main(int argc, const char * argv[]) {
         auto& most_fittest = population[0];
 
         if (most_fittest.get_fitness() <= 0) {
-                quit = true;
+                quit = true; 
                 GifEnd(&writer);
                 continue;
         }
@@ -118,15 +126,14 @@ int main(int argc, const char * argv[]) {
 
         auto current_fitness = most_fittest.get_fitness();
 
-        if (previous_fitness != current_fitness) {
+        auto elapsed = static_cast<double>(clock()-prev)/CLOCKS_PER_SEC;
+
+        if (elapsed > 300) { // Every 5 minutes
             if (!console_mode) {
                 most_fittest.render(); 
             }
             auto data = most_fittest.data();
-            GifWriteFrame(&writer, data, target.get_width(), target.get_height(), 100);
-            auto elapsed = static_cast<double>(clock()-prev)/CLOCKS_PER_SEC;
-            cout << "Generation: " << generation << " Fitness: " << current_fitness << endl
-            << "This Generation Took: " << elapsed << " seconds." << endl;
+            GifWriteFrame(&writer, data, target.get_width(), target.get_height(), 17); // 60 FPS
             prev = clock();
         }
 

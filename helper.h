@@ -1,13 +1,29 @@
 #pragma once
+#include <iostream>
 #include <SDL2/SDL.h>
 #include <string>
 #include <functional>
 #include <random>
 #include <vector>
 #include <algorithm>
-#include <thread> 
+#include <thread>
+#include <unistd.h>
+#include <netinet/ip.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
-using namespace std;
+using std::vector;
+using std::string;
+using std::cout;
+using std::cin;
+using std::endl;
+using std::to_string;
+using std::sort;
+using std::thread;
+using std::function;
+
+bool quit = false;
 
 class image
 {
@@ -112,7 +128,6 @@ class individual
      public:
         individual(const uint8_t *target, size_t length, SDL_Window *window, int w, int h)
         {
-            srand(time(NULL));
             this->fitness = 0;
             this->target = target;
             this->length = length;
@@ -130,18 +145,17 @@ class individual
         individual mate(individual parent)
         {
             individual child(target, length, window, img->get_width(), img->get_height());
-            srand(time(nullptr));
-            double p = rand() / static_cast<double>(RAND_MAX);
+            float p = rand() / static_cast<float>(RAND_MAX);
             child.fitness = 0;
             for(size_t i = 0; i < length; i++) {
                     if (p < 0.45) { // Insert parents genome
                             child.chromosone[i] = this->chromosone[i];
                     }
-                    else if (p < 0.90) {
+                    else if (p < 0.70) {
                         child.chromosone[i] = parent.chromosone[i];
                     }
                     else {
-                        child.chromosone[i] = rand() % 255; // Mutation
+                        child.chromosone[i] = rand() % 0xFF; // Mutation
                     }
                     if (child.chromosone[i] != target[i])
                         child.fitness++;
@@ -187,3 +201,68 @@ class individual
         }
 
 };
+
+vector<individual> population;
+
+sockaddr_in get_ip_address(const char* hostname, int port){
+	sockaddr_in ipa;
+	ipa.sin_family = AF_INET;
+	ipa.sin_port = htons(port);
+
+	auto host = gethostbyname(hostname);
+	if(!host){
+        cout << "Issue resolving host!" << endl;
+		exit(1);
+	}
+
+	auto addr = host->h_addr_list[0];
+	memcpy(&ipa.sin_addr.s_addr, addr, sizeof addr);
+
+	return ipa;
+}
+
+void run_server(int port) {
+
+    auto tcp = getprotobyname("tcp");
+    auto fd = socket(AF_INET, SOCK_STREAM, tcp->p_proto);
+
+    if (fd == -1) {
+        cout << "Error: Opening socket!" << endl;
+        exit(1);
+    }
+
+    auto ip = get_ip_address("0.0.0.0", port);
+
+
+    if(bind(fd, (sockaddr*)&ip, sizeof(ip)) == -1) {
+        cout << "Error: Failed to bind!" << endl;
+        exit(1);
+    }
+
+    if (listen(fd, 1) == -1) {
+        cout << "Error: Failed to listen!" << endl;
+    }
+
+    cout << "Listening on port " << port << "!" << endl;
+
+    while(!quit) {
+
+        auto cd = accept(fd, nullptr, nullptr);
+
+        auto& most_fittest = population[0];
+
+        auto message = "<html><body>Current Fitness: "  + to_string(most_fittest.get_fitness()) + "</body></html>";
+
+        string http_response =  //Create the HTTP response
+        string("HTTP/1.1 200 OK\r\n") +
+        "Content-Length: " + to_string(message.size()) + "\r\n" +
+        "Content-Type: text/html\r\n\r\n" +
+        message;
+       
+        auto status = send(cd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL); // Send the HTTP response to the client
+
+        shutdown(cd, SHUT_RDWR);
+
+    }
+
+}
