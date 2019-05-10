@@ -8,7 +8,7 @@ image::image() {
     windowSurface = nullptr;
 }
 
-image::image(SDL_Window *window, int w, int h) { // Create blank surface
+image::image(SDL_Window *window, int32_t w, int32_t h) { // Create blank surface
         this->window = window;
         this->windowSurface = SDL_GetWindowSurface(window);
         this->img = SDL_CreateRGBSurface(0, w, h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
@@ -67,11 +67,11 @@ const uint8_t* image::data() {
     return static_cast<uint8_t*>(img->pixels);
 }
 
-int image::get_width() {
+int32_t image::get_width() {
     return img->w;
 }
 
-int image::get_height() {
+int32_t image::get_height() {
     return img->h;
 }
 
@@ -82,7 +82,7 @@ bool image::is_disposed() {
 }
 
 
-individual::individual(const uint8_t *target, size_t length, SDL_Window *window, int w, int h)
+individual::individual(const uint8_t *target, size_t length, SDL_Window *window, int32_t w, int32_t h)
 {
     this->fitness = 0;
     this->target = target;
@@ -130,8 +130,20 @@ const uint8_t* individual::data() {
     return chromosone;
 }
 
-int individual::get_fitness() {
+int32_t individual::get_fitness() {
     return fitness;
+}
+
+int32_t individual::get_width()
+{
+    if (!img) return 0;
+    return img->get_width();
+}
+
+int32_t individual::get_height()
+{
+    if (!img) return 0;
+    return img->get_height();
 }
 
 bool individual::operator<(individual ind) {

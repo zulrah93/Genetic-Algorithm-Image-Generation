@@ -17,7 +17,7 @@ class image
 
         image();
 
-        image(SDL_Window *window, int w, int h);
+        image(SDL_Window *window, int32_t w, int32_t h);
         
         image(SDL_Window *window, string path, function<void()> errorCallback);
 
@@ -37,9 +37,9 @@ class image
 
         const uint8_t* data();
 
-        int get_width();
+        int32_t get_width();
 
-        int get_height();
+        int32_t get_height();
 
         bool is_disposed();
 
@@ -54,9 +54,9 @@ class individual
         size_t length; // Length of the chromosone
         const uint8_t* target;
         image *img;
-        int fitness;
+        int32_t fitness;
      public:
-        individual(const uint8_t *target, size_t length, SDL_Window *window, int w, int h);
+        individual(const uint8_t *target, size_t length, SDL_Window *window, int32_t w, int32_t h);
 
         individual mate(individual parent);
 
@@ -64,10 +64,14 @@ class individual
 
         const uint8_t* data();
 
-        int get_fitness();
+        int32_t get_fitness();
 
         bool operator<(individual ind);
 
         void dispose(bool console_mode);
+
+        int32_t get_width();
+
+        int32_t get_height();
 
 };

@@ -3,23 +3,23 @@
 
 vector<individual> population;
 bool quit = false;
-int min_fitness = INT32_MAX;
-int max_fitness = 0;
-int initial_fitness = -1;
+int32_t min_fitness = INT32_MAX;
+int32_t max_fitness = 0;
+int32_t initial_fitness = -1;
 
-#define POPULATION_SIZE 5000
+#define POPULATION_SIZE 1000
 
 bool console_mode = false;
 
 GifWriter writer;
 
-void sighandler(int handler) {
+void sighandler(int32_t handler) {
     GifEnd(&writer);
     cout << "Application terminated and ouput.gif was saved!" << endl;
     quit = true;
 }
 
-int main(int argc, const char * argv[]) {
+int32_t main(int32_t argc, const char * argv[]) {
 
     console_mode = (argc > 1 && strcmp(argv[1], "-console") == 0);
 
@@ -50,7 +50,7 @@ int main(int argc, const char * argv[]) {
     GifBegin(&writer, "output.gif", target.get_width(), target.get_height(), 100);
     signal(SIGINT, sighandler);
 
-    for(int i = 0; i < POPULATION_SIZE; i++)
+    for(int32_t i = 0; i < POPULATION_SIZE; i++)
     {   
         auto goal = target.data();
         if (!goal) continue;
@@ -70,14 +70,14 @@ int main(int argc, const char * argv[]) {
 
 
                 vector<individual> new_gen; 
-                int s = (10*POPULATION_SIZE)/100; // 10 percent of the fittest go on to the next gen
-                for(int i = 0;i<s;i++) {
+                int32_t s = (10*POPULATION_SIZE)/100; // 10 percent of the fittest go on to the next gen
+                for(int32_t i = 0;i<s;i++) {
                     auto& individual = population[i];
                     new_gen.push_back(individual); 
                 }
                 
                 s = (90*POPULATION_SIZE)/100; 
-                for(int i = 0;i<s;i++) {
+                for(int32_t i = 0;i<s;i++) {
                     size_t index = rand() % (POPULATION_SIZE/2);
                     size_t index2 = rand() % (POPULATION_SIZE/2);
                     if (index == index2) {
@@ -90,7 +90,7 @@ int main(int argc, const char * argv[]) {
                 }
 
                 s = (10*POPULATION_SIZE)/100; 
-                for(int i = s; i < population.size(); i++) {
+                for(int32_t i = s; i < population.size(); i++) {
                     auto& individual = population[i];
                     individual.dispose(console_mode); // Cleanup memory of the individuals that have ceased to exist
                 }
@@ -107,7 +107,7 @@ int main(int argc, const char * argv[]) {
 
     clock_t prev = clock();
     
-    int previous_fitness = 0;
+    int32_t previous_fitness = 0;
     
     while(!quit) {
         while(!console_mode && SDL_PollEvent(&event)) {
@@ -141,6 +141,7 @@ int main(int argc, const char * argv[]) {
             if (!console_mode) {
                 most_fittest.render(); 
             }
+            srand(time(NULL));
             auto data = most_fittest.data();
             GifWriteFrame(&writer, data, target.get_width(), target.get_height(), 17); // 60 FPS
             prev = clock();

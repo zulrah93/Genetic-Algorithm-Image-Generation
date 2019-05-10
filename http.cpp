@@ -8,12 +8,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include "bitmap.h"
 
 using std::cin;
 using std::cout;
 using std::endl;
 using std::vector;
 using std::to_string;
+using std::string;
 
 
 extern vector<individual> population;
@@ -69,20 +71,45 @@ void run_server(int port) {
 
         auto& most_fittest = population[0];
 
-        auto message =  // TODO HTML Builder class
-        "<html><body>Initial Fitness: " 
-        + to_string(initial_fitness) 
-        + "<br>Minimum Fitness: " 
-        + to_string(min_fitness) + 
-        "<br>Maximum Fitness:" + to_string(max_fitness) 
-        + "<br>Current Fitness: "  + to_string(most_fittest.get_fitness()) + 
-        "</body></html>";
+        char buffer[1024];
+        memset(buffer, 0, 1024);
+        read(cd, buffer, 1024);
 
-        string http_response =  //Create the HTTP response
-        string("HTTP/1.1 200 OK\r\n") +
-        "Content-Length: " + to_string(message.size()) + "\r\n" +
-        "Content-Type: text/html\r\n\r\n" +
-        message;
+        string html_request(buffer);
+
+        string http_response;
+
+        if (html_request.find("/data") != -1)
+        {
+            bitmap bmp(most_fittest.data(), most_fittest.get_width(), most_fittest.get_height());
+
+            auto raw_bitmap_data = bmp.make();
+
+            http_response =  //Create the HTTP response
+            string("HTTP/1.1 200 OK\r\n") +
+            "Content-Length: " + to_string(raw_bitmap_data.size()) + "\r\n" +
+            "Content-Type: image/x-windows-bmp\r\n\r\n" +
+            raw_bitmap_data;
+        }
+        else 
+        {
+            auto message =  // TODO HTML Builder class
+            "<html><body>Initial Fitness: " 
+            + to_string(initial_fitness) 
+            + "<br>Minimum Fitness: " 
+            + to_string(min_fitness) + 
+            "<br>Maximum Fitness:" + to_string(max_fitness) 
+            + "<br>Current Fitness: "  + to_string(most_fittest.get_fitness()) + 
+            "<br>Current Frame:</br><img src='/data' />" +
+            "</body></html>";
+
+            http_response =  //Create the HTTP response
+            string("HTTP/1.1 200 OK\r\n") +
+            "Content-Length: " + to_string(message.size()) + "\r\n" +
+            "Content-Type: text/html\r\n\r\n" +
+            message;
+
+        }
        
         auto status = send(cd, http_response.c_str(), http_response.size(), MSG_NOSIGNAL); // Send the HTTP response to the client
 
